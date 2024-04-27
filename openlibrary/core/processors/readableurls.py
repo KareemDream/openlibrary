@@ -86,7 +86,6 @@ class ReadableUrlProcessor:
     def __call__(self, handler):
         if web.ctx.path.startswith("/l/"):
             raise web.seeother("/languages/" + web.ctx.path[len("/l/"):])
-
         if web.ctx.path.startswith("/user/") and not web.ctx.site.get(web.ctx.path):
             raise web.seeother("/people/" + web.ctx.path[len("/user/"):])
 
@@ -94,10 +93,10 @@ class ReadableUrlProcessor:
             web.ctx.site, web.ctx.path, self.patterns, encoding=web.ctx.encoding
         )
 
-        encoded_path = urllib.parse.quote(web.safestr(web.ctx.path))
+        if readable_path.endswith('/'):
+            readable_path = readable_path.rstrip('/')
 
-        if web.ctx.path.endswith('/') and not readable_path.endswith('/'):
-            readable_path += '/'
+        encoded_path = urllib.parse.quote(web.safestr(web.ctx.path))
 
         if (readable_path != web.ctx.path
             and readable_path != encoded_path
@@ -111,7 +110,6 @@ class ReadableUrlProcessor:
         web.ctx.fullpath = web.ctx.path + web.ctx.query
 
         out = handler()
-
 
         if web.ctx.get('exclude'):
             web.ctx.status = "404 Not Found"
