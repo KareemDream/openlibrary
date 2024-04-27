@@ -37,27 +37,71 @@ class ReadableUrlProcessor:
         (r'/[/\w\-]+/OL\d+L', '/type/list', 'name', 'unnamed'),
     ]
 
+    # def __call__(self, handler):
+    #     # temp hack to handle languages and users during upstream-to-www migration
+    #     if web.ctx.path.startswith("/l/"):
+    #         raise web.seeother("/languages/" + web.ctx.path[len("/l/") :])
+
+    #     if web.ctx.path.startswith("/user/") and not web.ctx.site.get(web.ctx.path):
+    #         raise web.seeother("/people/" + web.ctx.path[len("/user/") :])
+
+    #     real_path, readable_path = get_readable_path(
+    #         web.ctx.site, web.ctx.path, self.patterns, encoding=web.ctx.encoding
+    #     )
+
+    #     # @@ web.ctx.path is either quoted or unquoted depends on whether the application is running
+    #     # @@ using builtin-server. That is probably a bug in web.py.
+    #     # @@ take care of that case here till that is fixed.
+    #     # @@ Also, the redirection must be done only for GET requests.
+    #     if (
+    #         readable_path != web.ctx.path
+    #         and readable_path != urllib.parse.quote(web.safestr(web.ctx.path))
+    #         and web.ctx.method == "GET"
+    #     ):
+    #         raise web.redirect(
+    #             web.safeunicode(readable_path) + web.safeunicode(web.ctx.query)
+    #         )
+
+    #     web.ctx.readable_path = readable_path
+    #     web.ctx.path = real_path
+    #     web.ctx.fullpath = web.ctx.path + web.ctx.query
+    #     out = handler()
+    #     V2_TYPES = [
+    #         'works',
+    #         'books',
+    #         'people',
+    #         'authors',
+    #         'publishers',
+    #         'languages',
+    #         'account',
+    #     ]
+
+    #     # Exclude noindex items
+    #     if web.ctx.get('exclude'):
+    #         web.ctx.status = "404 Not Found"
+    #         return render.notfound(web.ctx.path)
+
+    #     return out
+
     def __call__(self, handler):
-        # temp hack to handle languages and users during upstream-to-www migration
         if web.ctx.path.startswith("/l/"):
-            raise web.seeother("/languages/" + web.ctx.path[len("/l/") :])
+            raise web.seeother("/languages/" + web.ctx.path[len("/l/"):])
 
         if web.ctx.path.startswith("/user/") and not web.ctx.site.get(web.ctx.path):
-            raise web.seeother("/people/" + web.ctx.path[len("/user/") :])
+            raise web.seeother("/people/" + web.ctx.path[len("/user/"):])
 
         real_path, readable_path = get_readable_path(
             web.ctx.site, web.ctx.path, self.patterns, encoding=web.ctx.encoding
         )
 
-        # @@ web.ctx.path is either quoted or unquoted depends on whether the application is running
-        # @@ using builtin-server. That is probably a bug in web.py.
-        # @@ take care of that case here till that is fixed.
-        # @@ Also, the redirection must be done only for GET requests.
-        if (
-            readable_path != web.ctx.path
-            and readable_path != urllib.parse.quote(web.safestr(web.ctx.path))
-            and web.ctx.method == "GET"
-        ):
+        encoded_path = urllib.parse.quote(web.safestr(web.ctx.path))
+
+        if web.ctx.path.endswith('/') and not readable_path.endswith('/'):
+            readable_path += '/'
+
+        if (readable_path != web.ctx.path
+            and readable_path != encoded_path
+            and web.ctx.method == "GET"):
             raise web.redirect(
                 web.safeunicode(readable_path) + web.safeunicode(web.ctx.query)
             )
@@ -65,23 +109,16 @@ class ReadableUrlProcessor:
         web.ctx.readable_path = readable_path
         web.ctx.path = real_path
         web.ctx.fullpath = web.ctx.path + web.ctx.query
-        out = handler()
-        V2_TYPES = [
-            'works',
-            'books',
-            'people',
-            'authors',
-            'publishers',
-            'languages',
-            'account',
-        ]
 
-        # Exclude noindex items
+        out = handler()
+
+
         if web.ctx.get('exclude'):
             web.ctx.status = "404 Not Found"
             return render.notfound(web.ctx.path)
 
         return out
+
 
 
 def _get_object(site, key):
