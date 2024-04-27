@@ -46,6 +46,16 @@ def test_MockSite():
         "key": "/books/OL1M"
     }
 
+    # GOAL: test books with non-latin chars
+
+    book_non_latin = {"key": "/books/OL1M/Das_schwerhörige_Kind/", "type": {"key": "/type/edition"}, "title": "foo"}
+    site.add(book_non_latin)
+    assert(site.get("/books/OL1M/Das_schwerhörige_Kind/") is not None)
+    assert(site.get("/books/OL1M/Das_schwerhörige_Kind/").dict() == book)
+    assert site._request("/olid_to_key", data={"olid": "OL1M/Das_schwerhörige_Kind"}) == {
+        "key": "/books/OL1M/Das_schwerhörige_Kind"
+    }
+
 
 def _get_mock_site():
     site = MockSite()
